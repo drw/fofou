@@ -485,7 +485,7 @@ class ForumList(FofouBase):
     if users.is_current_user_admin():
       return self.redirect("/manageforums")
     MAX_FORUMS = 256 # if you need more, tough
-    forums = db.GqlQuery("SELECT * FROM Forum").fetch(MAX_FORUMS)
+    forums = db.GqlQuery("SELECT * FROM Forum where is_disabled = False").fetch(MAX_FORUMS)
     for f in forums:
         f.title_or_url = f.title or f.url
     tvals = {
