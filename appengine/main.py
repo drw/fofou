@@ -48,7 +48,7 @@ from django.template import Context, Template
 HTTP_NOT_ACCEPTABLE = 406
 HTTP_NOT_FOUND = 404
 
-FORUMS_MEMCACHE_KEY = "fo"
+FORUMS_MEMCACHE_KEY = "fof"
 
 def rss_memcache_key(forum):
     return "rss" + str(forum.key().id)
@@ -434,6 +434,7 @@ class ManageForums(FofouBase):
       disable = self.request.get('disable')
       enable = self.request.get('enable')
       if disable or enable:
+        clear_forums_memcache()
         title_or_url = forum.title or forum.url
         if disable:
           forum.is_disabled = True

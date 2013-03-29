@@ -22,7 +22,10 @@
 	</td>
 </tr>
 <tr>
-	<td class="sidebar">{{ forum.sidebar}}
+	<td class="sidebar">
+{% autoescape off %}
+          {{ forum.sidebar}}
+{% endautoescape %}
 	</td>
 	<td class="contents">
 		<script language="javascript" type="text/javascript">
