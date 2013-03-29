@@ -8,7 +8,9 @@
 </head>
 
 <body>
-<div id="tbTop"> {{ log_in_out }} </div>
+{% autoescape off %}
+  <div id="tbTop"> {{ log_in_out }} </div>
+{% endautoescape %}
 <table>
 <tbody>
 <tr>

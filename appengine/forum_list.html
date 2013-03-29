@@ -7,7 +7,9 @@
 </head>
 
 <body>
+{% autoescape off %}
   <div id="tbTop"> {{ log_in_out }} </div>
+{% endautoescape %}
 	<p>Welcome to the <b>CS2J</b> help forums!</p>
 
 		{% if forums %}

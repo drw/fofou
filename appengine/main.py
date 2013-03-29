@@ -1,15 +1,17 @@
+#!/usr/bin/env python
+#
 # This code is in Public Domain. Take all the code you want, I'll just write more.
+#
 import os, string, Cookie, sha, time, random, cgi, urllib, datetime, StringIO, pickle
-import wsgiref.handlers
-from google.appengine.api import users
-from google.appengine.api import memcache
-from google.appengine.ext import webapp
+
+import webapp2
+import logging
 from google.appengine.ext import db
+from google.appengine.api import memcache
+from google.appengine.api import users
 from google.appengine.ext.webapp import template
 from django.utils import feedgenerator
 from django.template import Context, Template
-import logging
-from offsets import *
 
 # Structure of urls:
 #
@@ -55,12 +57,12 @@ def topics_memcache_key(forum):
   return "to" + str(forum.key().id())
 
 BANNED_IPS = {
-    "59.181.121.8"  : 1,
-    "62.162.98.194" : 1,
-    "93.191.0.129"  : 1,
-    "31.31.26.59"   : 1,
-    "37.26.132.20"  : 1,
-    "31.31.26.198"  : 1
+#    "59.181.121.8"  : 1,
+#    "62.162.98.194" : 1,
+#    "93.191.0.129"  : 1,
+#    "31.31.26.59"   : 1,
+#    "37.26.132.20"  : 1,
+#    "31.31.26.198"  : 1
     #"127.0.0.1" : 1,
 }
 
@@ -137,10 +139,6 @@ class Post(db.Model):
   is_deleted = db.BooleanProperty(default=False)
   # ip address from which this post has been made
   user_ip_str = db.StringProperty(required=False)
-  # user_ip is an obsolete value, only used for compat with entries created before
-  # we introduced user_ip_str. If it's 0, we assume we'll use user_ip_str, otherwise
-  # we'll user user_ip
-  user_ip = db.IntegerProperty(required=True)
 
   user = db.Reference(FofouUser, required=True)
   # user_name, user_email and user_homepage might be different than
@@ -295,7 +293,7 @@ def get_log_in_out(url):
   else:
     return "<a href=\"%s\">Log in or register</a>" % users.create_login_url(url)
 
-class FofouBase(webapp.RequestHandler):
+class FofouBase(webapp2.RequestHandler):
 
   _cookie = None
   # returns either a FOFOU_COOKIE sent by the browser or a newly created cookie
@@ -350,6 +348,7 @@ class FofouBase(webapp.RequestHandler):
     #path = os.path.join(os.path.dirname(__file__), template_name)
     path = template_name
     #logging.info("tmpl: %s" % path)
+    #logging.info("tmpl: %s" % str(template_values))
     res = template.render(path, template_values)
     self.response.out.write(res)
 
@@ -371,7 +370,6 @@ class ManageForums(FofouBase):
 
     vals = ['url','title', 'tagline', 'sidebar', 'disable', 'enable', 'analyticscode']
     (url, title, tagline, sidebar, disable, enable, analytics_code) = req_get_vals(self.request, vals)
-
     errmsg = None
     if not valid_forum_url(url):
       errmsg = "Url contains illegal characters"
@@ -496,7 +494,7 @@ class ForumList(FofouBase):
     self.template_out("forum_list.html", tvals)
 
 # responds to GET /postdel?<post_id> and /postundel?<post_id>
-class PostDelUndel(webapp.RequestHandler):
+class PostDelUndel(webapp2.RequestHandler):
   def get(self):
     (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
@@ -629,8 +627,6 @@ class TopicForm(FofouBase):
 
     if is_moderator:
         for p in posts:
-            if 0 != p.user_ip:
-              p.user_ip_str = long2ip(p.user_ip)
             if p.user_homepage:
                 p.user_homepage = sanitize_homepage(p.user_homepage)
     tvals = {
@@ -649,7 +645,7 @@ class TopicForm(FofouBase):
 # responds to /<forumurl>/rss, returns an RSS feed of recent topics
 # (taking into account only the first post in a topic - that's what
 # joelonsoftware forum rss feed does)
-class RssFeed(webapp.RequestHandler):
+class RssFeed(webapp2.RequestHandler):
 
   def get(self):
     (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
@@ -691,7 +687,7 @@ class RssFeed(webapp.RequestHandler):
 
 # responds to /<forumurl>/rssall, returns an RSS feed of all recent posts
 # This is good for forum admins/moderators who want to monitor all posts
-class RssAllFeed(webapp.RequestHandler):
+class RssAllFeed(webapp2.RequestHandler):
 
   def get(self):
     (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
@@ -944,7 +940,7 @@ class PostForm(FofouBase):
       topic.put()
 
     user_ip_str = get_remote_ip()
-    p = Post(topic=topic, forum=forum, user=user, user_ip=0, user_ip_str=user_ip_str, message=message, sha1_digest=sha1_digest, user_name = name, user_email = email, user_homepage = homepage)
+    p = Post(topic=topic, forum=forum, user=user, user_ip_str=user_ip_str, message=message, sha1_digest=sha1_digest, user_name = name, user_email = email, user_homepage = homepage)
     p.put()
     memcache.delete(rss_memcache_key(forum))
     clear_topics_memcache(forum)
@@ -953,28 +949,14 @@ class PostForm(FofouBase):
     else:
       self.redirect(siteroot)
 
-class WeMoved(webapp.RequestHandler):
-  def get(self):
-    url = self.request.path_info
-    if url in ["/sumatrapdf/rss", "/sumatrapdf/rssall"]:
-      return self.redirect("http://forums.fofou.org" + url, permanent=True)
 
-    self.response.headers['Content-Type'] = 'text/html'
-    new_url = "http://forums.fofou.org" + url
-    s = """<html><body>This forum has moved! Please try
-<a href="%s">%s</a><body></html>""" % (new_url, new_url)
-    self.response.out.write(s)
+class MainHandler(webapp2.RequestHandler):
+    def get(self):
+        self.response.write('Hello world!')
 
-def main_moved():
-  application = webapp.WSGIApplication(
-     [('/.*', WeMoved)],
-     debug=False)
-  wsgiref.handlers.CGIHandler().run(application)
-
-def main():
-  application = webapp.WSGIApplication(
-     [  ('/', ForumList),
-        ('/manageforums', ManageForums),
+app = webapp2.WSGIApplication([
+    ('/', ForumList),
+    ('/manageforums', ManageForums),
         ('/[^/]+/postdel', PostDelUndel),
         ('/[^/]+/postundel', PostDelUndel),
         ('/[^/]+/post', PostForm),
@@ -982,9 +964,5 @@ def main():
         ('/[^/]+/email', EmailForm),
         ('/[^/]+/rss', RssFeed),
         ('/[^/]+/rssall', RssAllFeed),
-        ('/[^/]+/?', TopicList)],
-     debug=True)
-  wsgiref.handlers.CGIHandler().run(application)
-
-if __name__ == "__main__":
-  main()
+        ('/[^/]+/?', TopicList),
+], debug=True)
