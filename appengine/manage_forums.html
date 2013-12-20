@@ -70,10 +70,10 @@ function onSidebarFieldChange() {
 			<form action="/manageforums" method="post">
 			<table class="form">
 					<tr>
-						<td>Url</td>
+						<td>URL Directory</td>
 						<td><input class="{{ urlclass }}" type="edit" size="60" maxlength="60" name="url" id="urlFieldId" onchange="return onUrlFieldChange();" onkeyup="return onUrlFieldChange();" value="{{ prevurl|escape }}"></input>
 							<div>{{ errmsg }}</div>
-							<div id="underUrlTxt">Full url: {{ hosturl }}/{{ forum.url }}</div>
+							<div id="underUrlTxt">Full URL: {{ hosturl }}/{{ forum.url }}</div>
 						</td>
 					</tr>
 					<tr>
@@ -103,7 +103,7 @@ function onSidebarFieldChange() {
 					</tr>
 			</table>
 			</form>
-			<p><b>URL</b> is part of the forum URL. It should be short and a valid URL.</p>
+			<p><b>URL Directory</b> is the directory part of the forum URL. Hence, your forum will be located at http://www.yourdomain.com/[URL Directory].</p>
 			<p><b>Title</b> is what is shown at the top of the forum.</p>
 			<p><b>Tagline</b> is shown in smaller font, under the title. HTML is permitted (e.g., for links).</p>
 			<p><b>Analytics code</b> is a Google Analytics code (e.g., "UA-1230322-1"). If given, key pages will include Google Analytics 
