@@ -1,5 +1,11 @@
-Overview.
-=========
+Twiglet's fork of kjk's original software made the Python version
+of fofou compatible with recent changes to Google App Engine.
+
+**This** fork of Twiglet's fork includes my style modifications 
+and tweaks.
+
+Original Overview (by kjk)
+==========================
 
 For more info: http://blog.kowalczyk.info/software/fofou/
 
@@ -49,5 +55,5 @@ License.
 
 The python/Go code is written completely by me and is in Public Domain.
 
-Html/css/js files are mostly lifted from FuitShow, so they fall under
+Html/css/js files are mostly lifted from FruitShow, so they fall under
 FruitShow's BSD license.
