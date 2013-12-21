@@ -1,11 +1,14 @@
-Twiglet's fork of kjk's original software made the Python version
+Twiglet's fork of kjk's original forum software made the Python version
 of fofou compatible with recent changes to Google App Engine.
 
-**This** fork of Twiglet's fork includes my style modifications 
+_This_ fork of Twiglet's fork includes my style modifications 
 and tweaks.
 
-Original Overview (by kjk)
-==========================
+Below is the original README, followed by some comments I added
+as an addendum.
+
+Overview
+========
 
 For more info: http://blog.kowalczyk.info/software/fofou/
 
@@ -57,3 +60,11 @@ The python/Go code is written completely by me and is in Public Domain.
 
 Html/css/js files are mostly lifted from FruitShow, so they fall under
 FruitShow's BSD license.
+
+===========================================================
+
+Addendum
+========
+As of April 2013, the default CAPTCHA employed by fofou had been 
+defeated by forum spammers. Unless you want to manually delete a
+lot of spam, I recommend using some alternative CAPTCHA system.
