@@ -626,6 +626,19 @@ class TopicForm(FofouBase):
     else:
       posts = Post.gql("WHERE forum = :1 AND topic = :2 AND is_deleted = False ORDER BY created_on", forum, topic).fetch(MAX_POSTS)
 
+    #In practice, the above queries can fetch all but the post that someone just 
+    #posted (milliseconds ago) when this method is run immediately after the posting.
+    #This is due to the High Replication Datastore's eventual consistency. 
+    #The old Master/Slave Datastore (which Fofou was designed for) does not 
+    #have this eventual consistency problem.
+    #A decidedly non-robust patch over this bug (which will only work in situations
+    #where there is only one post posted in this short window of time) follows.
+    #It uses a memcached copy of the post saved down in PostForm.
+    newpost = memcache.get('np'+str(topic_id))
+    if newpost is not None:
+        if posts[-1].message != newpost.message: #double-check that the post is not
+            posts.append(newpost)                #already in the DataStore
+
     if is_moderator:
         for p in posts:
             if p.user_homepage:
@@ -943,6 +956,7 @@ class PostForm(FofouBase):
     user_ip_str = get_remote_ip()
     p = Post(topic=topic, forum=forum, user=user, user_ip_str=user_ip_str, message=message, sha1_digest=sha1_digest, user_name = name, user_email = email, user_homepage = homepage)
     p.put()
+#    memcache.add('np'+str(topic_id),p,5)
     memcache.delete(rss_memcache_key(forum))
     clear_topics_memcache(forum)
     if topic_id:
