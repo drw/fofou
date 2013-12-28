@@ -553,8 +553,8 @@ def get_topics_for_forum(forum, is_moderator, off, count):
   off = int(off)
   key = topics_memcache_key(forum)
   topics = memcache.get(key)
-#  if memcache.get('recache_topics_list'):
-#    topics = False # It seems that a side effect of the eventual consistency
+  if memcache.get('nt'):
+    topics = False # It seems that a side effect of the eventual consistency
     # problem is that there are memcache storages that are storing the wrong
     # information, such that all but the most recently posted topic will appear
     # in the topic list UNTIL the memcache is flushed; then all the topics appear.
