@@ -798,6 +798,33 @@ class EmailForm(FofouBase):
     tmpl = os.path.join(tmpldir, "email_sent.html")
     self.template_out(tmpl, tvals)
 
+class CommentRouter(FofouBase):
+#Take an URL like:
+#http://forum.someblog.com/0/comment?num=282657138246821&subject=Welkin%20Dynamics&URL=http://...
+#Check number against Topic database to see if Topic.bloggerID already exists.
+  def get(self):
+#    topic_id = self.request.get('id')
+    (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
+    if not forum or forum.is_disabled:
+      return self.redirect("/")
+    bloggerID = self.request.get('num')
+    subject = self.request.get('subject')
+    blogpostURL = self.request.get('URL')
+    if not bloggerID:
+      return self.redirect(siteroot)
+    
+##might have to get the key first then use key.id()
+    check=Topic.gql("WHERE bloggerID = :1 LIMIT 1", bloggerID).get()
+    if check:
+      key=check.key()
+      ID=key.id()
+      self.redirect(siteroot + "topic?id=" + str(ID))
+    else:
+      self.redirect(siteroot + "post?num=" + bloggerID + "&subject="+subject + "&URL=" + blogpostURL)
+#If thread exists, forward to that thread (self.redirect)
+#else GIVE OPTION TO create a new thread ("topic") and subsequently 
+#add to database.
+
 # responds to /<forumurl>/post[?id=<topic_id>]
 class PostForm(FofouBase):
 
@@ -805,6 +832,13 @@ class PostForm(FofouBase):
     (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
       return self.redirect("/")
+
+    comment = False # determines whether fielding a /post or /comment request
+    bloggerID = self.request.get('num')
+    if bloggerID:
+      comment = True
+      subject = self.request.get('subject')
+      blogpostURL = self.request.get('URL') # someday...
 
     ip = get_remote_ip()
     if ip in BANNED_IPS:
@@ -836,8 +870,19 @@ class PostForm(FofouBase):
       'prevUrl' : prevUrl,
       'prevEmail' : prevEmail,
       'prevName' : prevName,
-      'log_in_out' : get_log_in_out(self.request.url)
+      'log_in_out' : get_log_in_out(self.request.url),
+      'comment' : comment
     }
+    if comment:
+      tvals['subject']=subject
+      tvals['bloggerID']=bloggerID
+      tvals['blogpostURL']=blogpostURL #I am using this
+      # as a way to pass the bloggerID value along... 
+      # The template must be modified to support hidden values.
+      
+      # Is it a problem if bloggerID doesn't exist? 
+      # How does the "None" value get transmitted
+      # and received in the next step?
     topic_id = self.request.get('id')
     if topic_id:
       topic = db.get(db.Key.from_path('Topic', int(topic_id)))
@@ -860,8 +905,8 @@ class PostForm(FofouBase):
 
     self.send_cookie()
 
-    vals = ['TopicId', 'num1', 'num2', 'Captcha', 'Subject', 'Message', 'Remember', 'Email', 'Name', 'Url']
-    (topic_id, num1, num2, captcha, subject, message, remember_me, email, name, homepage) = req_get_vals(self.request, vals)
+    vals = ['TopicId', 'num1', 'num2', 'Captcha', 'Subject', 'Comment', 'BloggerID', 'BlogPostURL', 'Message', 'Remember', 'Email', 'Name', 'Url']
+    (topic_id, num1, num2, captcha, subject, comment, bloggerID, blogpostURL, message, remember_me, email, name, homepage) = req_get_vals(self.request, vals)
     message = to_unicode(message)
 
     remember_me = True
@@ -892,7 +937,10 @@ class PostForm(FofouBase):
       "prevUrl" : homepage,
       "prevName" : name,
       "prevTopicId" : topic_id,
-      "log_in_out" : get_log_in_out(siteroot + "post")
+      "log_in_out" : get_log_in_out(siteroot + "post"),
+      "comment": comment,
+      "bloggerID": bloggerID,
+      "blogpostURL": blogpostURL
     }
 
     # validate captcha and other values
@@ -960,7 +1008,10 @@ class PostForm(FofouBase):
         user.put()
 
     if not topic_id:
-      topic = Topic(forum=forum, subject=subject, created_by=name)
+      if comment: #bgr
+        topic = Topic(forum=forum, subject=subject, created_by=name, bloggerID=bloggerID, blogpostURL=blogpostURL, isComment=True)
+      else:
+        topic = Topic(forum=forum, subject=subject, created_by=name, isComment=False)
       topic.put()
     else:
       topic = db.get(db.Key.from_path('Topic', int(topic_id)))
@@ -993,6 +1044,7 @@ app = webapp2.WSGIApplication([
         ('/[^/]+/postundel', PostDelUndel),
         ('/[^/]+/post', PostForm),
         ('/[^/]+/topic', TopicForm),
+        ('/[^/]+/comment', CommentRouter),
         ('/[^/]+/email', EmailForm),
         ('/[^/]+/rss', RssFeed),
         ('/[^/]+/rssall', RssAllFeed),

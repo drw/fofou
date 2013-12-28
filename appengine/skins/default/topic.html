@@ -32,7 +32,7 @@
 		// -->
 		</script>
 		<div class="posts">
-			<h3>{{ topic.subject|escape }}</h3>
+			<h3>{{ topic.subject|escape }}{% if topic.isComment %}{%if topic.blogpostURL %} &nbsp;<a href="{{topic.blogpostURL}}" style="font-weight: normal;"><img src='/img/b2b_arrow_v.png' alt=''></a> <a href="{{topic.blogpostURL}}" style="font-weight: normal;">(View post)</a>{% endif %}{% endif %}</h3>
 			{% for post in posts %}
 					<a name="{{ post.key.id }}"></a>
 				<div>

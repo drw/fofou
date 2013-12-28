@@ -52,6 +52,7 @@
 			{% else %}
 				<a href="{{ siteroot }}topic?id={{ topic.key.id }}{% if topic.ncomments %}&comments={{ topic.ncomments }}{% endif %}" title="{{ topic.msg_short|striptags|escape }}">{{ topic.subject|escape }} </a>
 			{% endif %}
+			{% if topic.isComment %}<a href="{{topic.blogpostURL}}" style="font-weight: normal;"><img src='/img/b2b_arrow_v.png' style="line-height: -2em;" alt=''></a>&nbsp;{% endif %}
 			<em>{{ topic.created_by|striptags|escape }}</em> <span>({{ topic.ncomments }}{% if forloop.first %} comment{{ topic.ncomments|pluralize }}{% endif %})</span>
 			<br />
 			{% if not forloop.first %}

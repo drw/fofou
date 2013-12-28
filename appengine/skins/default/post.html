@@ -46,12 +46,25 @@
 					&nbsp;
 			</td>
 			</tr>
-			{% if not prevTopicId %} 
+			{% if not prevTopicId and not comment %} 
 			<tr>
 				<th><label for="Subject">Subject:</label></th>
 				<td colspan="2">
 					<input class="{{ subject_class }}" size="60" maxlength="64" name="Subject" id="Subject" style="width: 39em;" value="{{ prevSubject|escape }}" type="edit">
 					&nbsp;
+				</td>
+			</tr>
+			{% endif %}
+			{% if comment %} 
+			<tr>
+				<th><label for="Subject">Subject:</label></th>
+				<td colspan="2">
+					{{ subject }}
+					&nbsp;
+					<input class="{{ subject_class }}" size="60" maxlength="64" name="Subject" id="Subject" style="width: 39em;" value="{{ subject }}" type="hidden">
+					<input class="{{ subject_class }}" size="60" maxlength="64" name="Comment" id="Comment" style="width: 39em;" value="{{ comment }}" type="hidden">
+					<input class="{{ subject_class }}" size="60" maxlength="64" name="BloggerID" id="BloggerID" style="width: 39em;" value="{{ bloggerID }}" type="hidden">
+					<input class="{{ subject_class }}" size="60" maxlength="128" name="BlogPostURL" id="BloggerID" style="width: 39em;" value="{{ blogpostURL }}" type="hidden">
 				</td>
 			</tr>
 			{% endif %}
