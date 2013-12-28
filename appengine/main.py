@@ -956,7 +956,8 @@ class PostForm(FofouBase):
     user_ip_str = get_remote_ip()
     p = Post(topic=topic, forum=forum, user=user, user_ip_str=user_ip_str, message=message, sha1_digest=sha1_digest, user_name = name, user_email = email, user_homepage = homepage)
     p.put()
-#    memcache.add('np'+str(topic_id),p,5)
+    memcache.add('np'+str(topic_id),p,5)
+    memcache.add('nt',topic,5)
     memcache.delete(rss_memcache_key(forum))
     clear_topics_memcache(forum)
     if topic_id:
