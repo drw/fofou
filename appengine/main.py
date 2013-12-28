@@ -125,7 +125,10 @@ class Topic(db.Model):
   # of the post
   is_deleted = db.BooleanProperty(default=False)
   # ncomments is redundant but is faster than always quering count of Posts
-  ncomments = db.IntegerProperty(default=0)
+  ncomments = db.IntegerProperty(default=1)
+  bloggerID = db.StringProperty()
+  blogpostURL = db.StringProperty()
+  isComment = db.BooleanProperty(default=False)
 
 # A topic is a collection of posts
 class Post(db.Model):
@@ -550,6 +553,14 @@ def get_topics_for_forum(forum, is_moderator, off, count):
   off = int(off)
   key = topics_memcache_key(forum)
   topics = memcache.get(key)
+#  if memcache.get('recache_topics_list'):
+#    topics = False # It seems that a side effect of the eventual consistency
+    # problem is that there are memcache storages that are storing the wrong
+    # information, such that all but the most recently posted topic will appear
+    # in the topic list UNTIL the memcache is flushed; then all the topics appear.
+    # This problem appears to exist in twiglet's version of fofou as well and 
+    # may go further back.
+    # As another suboptimal patch, I am just setting topics to False here.
   if not topics:
     q = Topic.gql("WHERE forum = :1 ORDER BY created_on DESC", forum)
     topics = q.fetch(1000)
@@ -577,6 +588,10 @@ class TopicList(FofouBase):
     is_moderator = users.is_current_user_admin()
     MAX_TOPICS = 75
     (topics, new_off) = get_topics_for_forum(forum, is_moderator, off, MAX_TOPICS)
+    extra_topic = memcache.get('nt')
+    if extra_topic is not None:
+        if extra_topic.subject != topics[0].subject:
+            topics.insert(0,extra_topic)
     forum.title_or_url = forum.title or forum.url
     tvals = {
       'siteroot' : siteroot,
@@ -956,7 +971,9 @@ class PostForm(FofouBase):
     user_ip_str = get_remote_ip()
     p = Post(topic=topic, forum=forum, user=user, user_ip_str=user_ip_str, message=message, sha1_digest=sha1_digest, user_name = name, user_email = email, user_homepage = homepage)
     p.put()
-#    memcache.add('np'+str(topic_id),p,5)
+    memcache.add('np'+str(topic_id),p,5)
+    memcache.add('nt',topic,5)
+    memcache.add('recache_topics_list',True,5)
     memcache.delete(rss_memcache_key(forum))
     clear_topics_memcache(forum)
     if topic_id:
