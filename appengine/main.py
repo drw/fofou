@@ -586,9 +586,9 @@ class TopicList(FofouBase):
     MAX_TOPICS = 75
     (topics, new_off) = get_topics_for_forum(forum, is_moderator, off, MAX_TOPICS)
     extra_topic = memcache.get('nt')
-      if extra_topic is not None:
-        if extra_topic.subject != topics[0].subject:
-          topics.insert(0,extra_topic)
+    if extra_topic is not None:
+      if extra_topic.subject != topics[0].subject:
+        topics.insert(0,extra_topic)
     forum.title_or_url = forum.title or forum.url
     tvals = {
       'siteroot' : siteroot,
