@@ -12,6 +12,7 @@ from google.appengine.api import users
 from google.appengine.ext.webapp import template
 from django.utils import feedgenerator
 from django.template import Context, Template
+import json
 
 # Structure of urls:
 #
@@ -590,7 +591,9 @@ class TopicList(FofouBase):
     (topics, new_off) = get_topics_for_forum(forum, is_moderator, off, MAX_TOPICS)
     extra_topic = memcache.get('nt')
     if extra_topic is not None:
-        if extra_topic.subject != topics[0].subject:
+        if len(topics)==0:
+            topics.insert(0,extra_topic)
+        elif extra_topic.subject != topics[0].subject:
             topics.insert(0,extra_topic)
     forum.title_or_url = forum.title or forum.url
     tvals = {
@@ -803,7 +806,6 @@ class CommentRouter(FofouBase):
 #http://forum.someblog.com/0/comment?num=282657138246821&subject=Welkin%20Dynamics&URL=http://...
 #Check number against Topic database to see if Topic.bloggerID already exists.
   def get(self):
-#    topic_id = self.request.get('id')
     (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
       return self.redirect("/")
@@ -824,6 +826,39 @@ class CommentRouter(FofouBase):
 #If thread exists, forward to that thread (self.redirect)
 #else GIVE OPTION TO create a new thread ("topic") and subsequently 
 #add to database.
+
+class CommentCount(FofouBase):
+#Take a URL like:
+#http://forum.someblog.com/0/commentcount?num=282657138246821
+#Check number against Topic database to see if Topic.bloggerID already exists
+#and if so, return number of posts in thread. Else return 0.
+  def get(self):
+    (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
+    count=0
+    if not forum or forum.is_disabled:
+      return 0
+    bloggerID = self.request.get('num')
+    if not bloggerID:
+      count=0
+   
+##might have to get the key first then use key.id()
+    check=Topic.gql("WHERE bloggerID = :1 LIMIT 1", bloggerID).get()
+    if check:
+#      key=check.key()
+#      ID=key.id()
+#      self.redirect(siteroot + "topic?id=" + str(ID))
+#      self.response.out.write(str(check.ncomments));
+      count=check.ncomments
+#      subj=check.subject
+#      pubd=check.updated_on
+    else:
+      count=0
+
+    self.response.headers['Content-Type'] = 'application/json'   
+    obj = {
+        'count': count,
+      } 
+    self.response.out.write('commentCount('+json.dumps(obj)+')')
 
 # responds to /<forumurl>/post[?id=<topic_id>]
 class PostForm(FofouBase):
@@ -1045,6 +1080,7 @@ app = webapp2.WSGIApplication([
         ('/[^/]+/post', PostForm),
         ('/[^/]+/topic', TopicForm),
         ('/[^/]+/comment', CommentRouter),
+        ('/[^/]+/commentcount', CommentCount),
         ('/[^/]+/email', EmailForm),
         ('/[^/]+/rss', RssFeed),
         ('/[^/]+/rssall', RssAllFeed),
